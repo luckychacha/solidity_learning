@@ -2,7 +2,6 @@
 pragma solidity 0.8.19;
 
 contract CrowdFunding {
-
     address immutable owner;
 
     constructor() {
@@ -23,15 +22,25 @@ contract CrowdFunding {
 
     uint public numCampaigns;
     mapping(uint => Campaign) campaigns;
+
+    Campaign[] public campaignArray;
     mapping(uint => Funder[]) funders;
 
     mapping(uint => mapping(address => bool)) campaignUserParticipated;
 
-    function newCampaign(address payable receiver, uint goal) external isOwner() returns(uint campaginID) {
+    event CampaignLog(uint campaignId, address receiver, uint goal);
+
+    function newCampaign(
+        address payable receiver,
+        uint goal
+    ) external isOwner returns (uint campaginID) {
         campaginID = numCampaigns++;
         Campaign storage c = campaigns[campaginID];
         c.receiver = receiver;
         c.fundingGoal = goal;
+
+        campaignArray.push(c);
+        emit CampaignLog(campaginID, receiver, goal);
     }
 
     modifier judgeParticipate(uint campaginID) {
@@ -44,21 +53,20 @@ contract CrowdFunding {
         _;
     }
 
-    function bid(uint campaginID) external payable judgeParticipate(campaginID) {
+    function bid(
+        uint campaginID
+    ) external payable judgeParticipate(campaginID) {
         Campaign storage c = campaigns[campaginID];
 
         c.totalAmount += msg.value;
         c.numFunders += 1;
 
-        funders[campaginID].push(Funder({
-            addr: msg.sender,
-            amount: msg.value
-        }));
+        funders[campaginID].push(Funder({addr: msg.sender, amount: msg.value}));
 
         campaignUserParticipated[campaginID][msg.sender] = true;
     }
 
-    function withdraw(uint campaginID) external payable returns(bool reached) {
+    function withdraw(uint campaginID) external payable returns (bool reached) {
         Campaign storage c = campaigns[campaginID];
 
         if (c.totalAmount < c.fundingGoal) {
