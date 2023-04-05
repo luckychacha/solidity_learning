@@ -30,6 +30,8 @@ contract CrowdFunding {
 
     event CampaignLog(uint campaignId, address receiver, uint goal);
 
+    event BidLog(uint campaignId, address addr, uint amount);
+
     function newCampaign(
         address payable receiver,
         uint goal
@@ -64,6 +66,8 @@ contract CrowdFunding {
         funders[campaginID].push(Funder({addr: msg.sender, amount: msg.value}));
 
         campaignUserParticipated[campaginID][msg.sender] = true;
+
+        emit BidLog(campaginID, msg.sender, msg.value);
     }
 
     function withdraw(uint campaginID) external payable returns (bool reached) {
