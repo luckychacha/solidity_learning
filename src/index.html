@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyErc20</title>
+</head>
+
+<body>
+    <div>
+        <!-- button connect wallet -->
+        <button onclick="connect()">Connect Wallet</button>
+        <!-- display section -->
+        <!-- ChainId
+BlockNumber
+BlockTimestamp
+Current Account
+Current Balance -->
+        <div>ChainId:<span id="chain_id"></span></div>
+        <div>BlockNumber:<span id="block_number"></span></div>
+        <div>BlockTimestamp:<span id="block_timestamp"></span></div>
+        <div>Current Account:<span id="account_address"></span></div>
+        <div>Current Balance:<span id="account_balance"></span></div>
+        <br />
+
+
+
+        <!-- button Read Contract -->
+
+        <input type="text" name="contract_address" id="contract_address" />
+        <button onclick="read()">Read Contract</button>
+        <!-- display section -->
+        <!-- TokenSymbol
+TotalSupply
+AccountBalance -->
+        <div>TokenSymbol:<span id="token_symbol"></span></div>
+        <div>TotalSupply:<span id="total_supply"></span></div>
+        <div>AccountBalance:<span id="account_balance"></span></div>
+        <br />
+
+
+
+        <!-- button Transfer -->
+        <input type="text" name="to_address" id="to_address" />
+        <input type="text" name="transfer_amount" id="transfer_amount" />
+
+        <!-- display section -->
+        <!-- estimateGas -->
+        <!-- gasPrice
+txHash -->
+        <div>estimation:<span id="estimation"></span></div>
+        <div>gasPrice:<span id="gas_price"></span></div>
+        <div>txHash:<span id="tx_hash"></span></div>
+    </div>
+</body>
+
+</html>
