@@ -471,7 +471,6 @@ async function read() {
     document.getElementById("token_symbol").innerText = tokenSymbol;
     document.getElementById("total_supply").innerText = tokenTotalSupply;
     document.getElementById("account_balance").innerText = accountAddressBalance;
-
 }
 
 async function transfer() {
