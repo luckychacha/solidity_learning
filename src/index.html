@@ -22,15 +22,16 @@ Current Balance -->
         <div>BlockNumber:<span id="block_number"></span></div>
         <div>BlockTimestamp:<span id="block_timestamp"></span></div>
         <div>Current Account:<span id="account_address"></span></div>
-        <div>Current Balance:<span id="account_balance"></span></div>
+        <div>Current Balance:<span id="current_balance"></span></div>
         <br />
-
-
 
         <!-- button Read Contract -->
 
-        <input type="text" name="contract_address" id="contract_address" />
-        <button onclick="read()">Read Contract</button>
+        <div>
+            Contract Address:
+            <input type="text" name="contract_address" id="contract_address" />
+            <button onclick="read()">Read Contract</button>
+        </div>
         <!-- display section -->
         <!-- TokenSymbol
 TotalSupply
@@ -40,12 +41,13 @@ AccountBalance -->
         <div>AccountBalance:<span id="account_balance"></span></div>
         <br />
 
-
-
         <!-- button Transfer -->
-        <input type="text" name="to_address" id="to_address" />
-        <input type="text" name="transfer_amount" id="transfer_amount" />
+        <div>
+            To address:<input type="text" name="to_address" id="to_address" />
+            Transfer amount:<input type="text" name="transfer_amount" id="transfer_amount" />
+            <button onclick="transfer()">Transfer</button>
 
+        </div>
         <!-- display section -->
         <!-- estimateGas -->
         <!-- gasPrice
@@ -54,6 +56,7 @@ txHash -->
         <div>gasPrice:<span id="gas_price"></span></div>
         <div>txHash:<span id="tx_hash"></span></div>
     </div>
-</body>
+    <script src="./js/web3.min.js"></script>
+    <script src="./js/app.js"></script>
 
 </html>
