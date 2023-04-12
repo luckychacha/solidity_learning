@@ -55,6 +55,29 @@ txHash -->
         <div>estimation:<span id="estimation"></span></div>
         <div>gasPrice:<span id="gas_price"></span></div>
         <div>txHash:<span id="tx_hash"></span></div>
+
+
+        <br />
+        <div>
+            Mint amount:<input type="text" name="mint_amount" id="mint_amount" />
+            <button onclick="mint()">Mint</button>
+        </div>
+
+        <br />
+        <div>
+            Burn amount:<input type="text" name="burn_amount" id="burn_amount" />
+            <button onclick="burn()">Burn</button>
+        </div>
+
+        <br />
+        <div>
+            Query address:<input type="text" name="query_address" id="query_address" />
+            <button onclick="query_by_address()">Query</button>
+            <div>Query address token balance:<span id="query_address_met_balance"></span></div>
+        </div>
+
+
+
     </div>
     <script src="./js/web3.min.js"></script>
     <script src="./js/app.js"></script>

@@ -519,3 +519,73 @@ async function transfer() {
 
 
 }
+
+async function mint() {
+    var contractAddress = document.getElementById("contract_address").value;
+    var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+
+    var mintAmount = document.getElementById("mint_amount").value;
+    var mintData = instance.methods.mint(accountAddress, mintAmount).encodeABI();
+    await run(contractAddress, mintData);
+    
+    
+}
+async function burn() {
+    var contractAddress = document.getElementById("contract_address").value;
+    var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+
+    var burnAmount = document.getElementById("burn_amount").value;
+    var burnData = instance.methods.burn(burnAmount).encodeABI();
+    await run(contractAddress, burnData);
+}
+
+async function run(contractAddress, data) {
+    // 预执行
+    try {
+        var estimateGasRes = await web3.eth.estimateGas({
+            to: contractAddress,
+            data: data,
+            from: accountAddress,
+            value: '0x0'
+        });
+
+        var gasPrice = await web3.eth.getGasPrice();
+
+        let nonce = await web3.eth.getTransactionCount(accountAddress);
+
+        let rawTransaction = {
+            from: accountAddress,
+            to: contractAddress,
+            nonce: web3.utils.toHex(nonce),
+            gasPrice: gasPrice,
+            gas: estimateGasRes * 2,
+            value: '0x0',
+            data: data,
+            chainId: chainId
+        }
+
+        // estimation
+        // gas_price
+        // tx_hash
+        web3.eth.sendTransaction(rawTransaction).on("transactionHash", function(hash) {
+            console.log("txHash", hash);
+            document.getElementById("tx_hash").innerText = hash;
+        });
+        document.getElementById("estimation").innerText = estimateGasRes;
+        document.getElementById("gas_price").innerText = web3.utils.fromWei(gasPrice, "gwei");
+    } catch (error) {
+        alert("ecution reverted: Ownable: caller is not the owner");
+        console.error(`Error Info: ${error.message}.`);
+    }
+}
+
+async function query_by_address() {
+    var contractAddress = document.getElementById("contract_address").value;
+    var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+
+    var queryAddress = document.getElementById("query_address").value;
+    var queryAddressMETBalance = await instance.methods.balanceOf(queryAddress).call();
+    console.log(queryAddressMETBalance);
+    document.getElementById("query_address_met_balance").innerText = queryAddressMETBalance;
+
+}
