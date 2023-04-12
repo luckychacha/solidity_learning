@@ -585,7 +585,10 @@ async function query_by_address() {
 
     var queryAddress = document.getElementById("query_address").value;
     var queryAddressMETBalance = await instance.methods.balanceOf(queryAddress).call();
-    console.log(queryAddressMETBalance);
-    document.getElementById("query_address_met_balance").innerText = queryAddressMETBalance;
+    document.getElementById("query_address_token_balance").innerText = queryAddressMETBalance;
+
+    var ethBalance = await web3.eth.getBalance(queryAddress);
+    console.log(`ethBalance: ${ethBalance} queryAddress: ${queryAddress}`)
+    document.getElementById("query_address_eth_balance").innerText = ethBalance;
 
 }
