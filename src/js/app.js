@@ -564,15 +564,12 @@ async function run(contractAddress, data) {
             chainId: chainId
         }
 
-        // estimation
-        // gas_price
-        // tx_hash
         web3.eth.sendTransaction(rawTransaction).on("transactionHash", function(hash) {
             console.log("txHash", hash);
-            document.getElementById("tx_hash").innerText = hash;
+            document.getElementById("mint_burn_tx_hash").innerText = hash;
         });
-        document.getElementById("estimation").innerText = estimateGasRes;
-        document.getElementById("gas_price").innerText = web3.utils.fromWei(gasPrice, "gwei");
+        document.getElementById("mint_burn_estimation").innerText = estimateGasRes;
+        document.getElementById("mint_burn_gas_price").innerText = web3.utils.fromWei(gasPrice, "gwei");
     } catch (error) {
         alert("ecution reverted: Ownable: caller is not the owner");
         console.error(`Error Info: ${error.message}.`);
