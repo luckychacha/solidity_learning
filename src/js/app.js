@@ -523,16 +523,24 @@ async function transfer() {
 async function mint() {
     var contractAddress = document.getElementById("contract_address").value;
     var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+    var owner = await instance.methods.owner().call();
+    if (accountAddress != owner) {
+        alert("caller is not the owner.");
+        return;
+    }
 
     var mintAmount = document.getElementById("mint_amount").value;
     var mintData = instance.methods.mint(accountAddress, mintAmount).encodeABI();
     await run(contractAddress, mintData);
-    
-    
 }
 async function burn() {
     var contractAddress = document.getElementById("contract_address").value;
     var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+    var owner = await instance.methods.owner().call();
+    if (accountAddress != owner) {
+        alert("caller is not the owner.");
+        return;
+    }
 
     var burnAmount = document.getElementById("burn_amount").value;
     var burnData = instance.methods.burn(burnAmount).encodeABI();
@@ -571,7 +579,7 @@ async function run(contractAddress, data) {
         document.getElementById("mint_burn_estimation").innerText = estimateGasRes;
         document.getElementById("mint_burn_gas_price").innerText = web3.utils.fromWei(gasPrice, "gwei");
     } catch (error) {
-        alert("ecution reverted: Ownable: caller is not the owner");
+        // alert("execution reverted: Ownable: caller is not the owner");
         console.error(`Error Info: ${error.message}.`);
     }
 }
