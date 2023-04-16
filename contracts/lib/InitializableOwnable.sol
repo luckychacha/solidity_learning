@@ -17,4 +17,16 @@ contract InitializableOwnable {
         address indexed previousOwner,
         address indexed newOwner
     );
+
+    // Modifiers
+
+    modifier notInitialized() {
+        require(!_INTIALIZED_, "Has_Been_Initialized");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == _OWNER_, "Not_Owner");
+        _;
+    }
 }
