@@ -131,6 +131,15 @@ module.exports = {
         },
         evmVersion: "london",
       },
+      outputSelection: {
+        "*": {
+          "": ["legacyAST", "ast"],
+          "*": [
+            "evm.bytecode",
+            "evm.bytecode.sourceMap"
+          ]
+        }
+      }
     },
   },
 
