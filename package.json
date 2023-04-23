@@ -21,6 +21,7 @@
   "homepage": "https://github.com/luckychacha/solidity_learning#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.2",
-    "@truffle/hdwallet-provider": "^2.1.9"
+    "@truffle/hdwallet-provider": "^2.1.9",
+    "truffle-flattener": "^1.6.0"
   }
 }
