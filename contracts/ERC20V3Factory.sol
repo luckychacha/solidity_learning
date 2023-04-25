@@ -70,7 +70,7 @@ contract ERC20V3Factory is InitializableOwnable {
         address customErc20Template,
         address customMintableErc20Template,
         uint256 createFee
-    ) public {
+    ) {
         _CLONE_FACTORY_ = cloneFactory;
         _ERC20_TEMPLATE_ = erc20Template;
         _CUSTOM_ERC20_TEMPLATE_ = customErc20Template;
