@@ -186,7 +186,7 @@ contract ERC20V3Factory is InitializableOwnable {
 
     function withdraw() external onlyOwner {
         uint256 amount = address(this).balance;
-        msg.sender.transfer(amount);
+        payable(msg.sender).transfer(amount);
         emit Withdraw(msg.sender, amount);
     }
 
