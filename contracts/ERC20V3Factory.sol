@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
+pragma experimental ABIEncoderV2;
 
 import {ICloneFactory} from "./lib/CloneFactory.sol";
+import {InitializableOwnable} from "./lib/InitializableOwnable.sol";
 
 interface IStdERC20 {
     function init(
@@ -26,14 +28,23 @@ interface ICustomERC20 {
     ) external;
 }
 
-contract ERC20V3Factory {
+/**
+ * @title DODO ERC20V2Factory
+ * @author DODO Breeder
+ *
+ * @notice Help user to create erc20 token
+ */
+contract ERC20V3Factory is InitializableOwnable {
+    // ============ Templates ============
+
     address public immutable _CLONE_FACTORY_;
     address public _ERC20_TEMPLATE_;
     address public _CUSTOM_ERC20_TEMPLATE_;
     address public _CUSTOM_MINTABLE_ERC20_TEMPLATE_;
     uint256 public _CREATE_FEE_;
 
-    // Events
+    // ============ Events ============
+    // 0 Std 1 TradeBurn or TradeFee 2 Mintable
     event NewERC20(address erc20, address creator, uint256 erc20Type);
     event ChangeCreateFee(uint256 newFee);
     event Withdraw(address account, uint256 amount);
@@ -41,12 +52,14 @@ contract ERC20V3Factory {
     event ChangeCustomTemplate(address newCustomTemplate);
     event ChangeCustomMintableTemplate(address newCustomMintableTemplate);
 
-    // Registry
+    // ============ Registry ============
+    // creator -> token address list
     mapping(address => address[]) public _USER_STD_REGISTRY_;
     mapping(address => address[]) public _USER_CUSTOM_REGISTRY_;
     mapping(address => address[]) public _USER_CUSTOM_MINTABLE_REGISTRY_;
 
-    // Functions
+    // ============ Functions ============
+
     fallback() external payable {}
 
     receive() external payable {}
@@ -57,7 +70,7 @@ contract ERC20V3Factory {
         address customErc20Template,
         address customMintableErc20Template,
         uint256 createFee
-    ) {
+    ) public {
         _CLONE_FACTORY_ = cloneFactory;
         _ERC20_TEMPLATE_ = erc20Template;
         _CUSTOM_ERC20_TEMPLATE_ = customErc20Template;
@@ -71,7 +84,7 @@ contract ERC20V3Factory {
         string memory symbol,
         uint8 decimals
     ) external payable returns (address newERC20) {
-        require(msg.value >= _CREATE_FEE_, "CREATE FEE NOT ENOUGH");
+        require(msg.value >= _CREATE_FEE_, "CREATE_FEE_NOT_ENOUGH");
         newERC20 = ICloneFactory(_CLONE_FACTORY_).clone(_ERC20_TEMPLATE_);
         IStdERC20(newERC20).init(
             msg.sender,
@@ -93,10 +106,11 @@ contract ERC20V3Factory {
         uint256 tradeFeeRatio,
         address teamAccount
     ) external payable returns (address newCustomERC20) {
-        require(msg.value >= _CREATE_FEE_, "CREATE FEE NOT ENOUGH");
+        require(msg.value >= _CREATE_FEE_, "CREATE_FEE_NOT_ENOUGH");
         newCustomERC20 = ICloneFactory(_CLONE_FACTORY_).clone(
             _CUSTOM_ERC20_TEMPLATE_
         );
+
         ICustomERC20(newCustomERC20).init(
             msg.sender,
             totalSupply,
@@ -107,12 +121,14 @@ contract ERC20V3Factory {
             tradeFeeRatio,
             teamAccount
         );
+
         _USER_CUSTOM_REGISTRY_[msg.sender].push(newCustomERC20);
+
         emit NewERC20(newCustomERC20, msg.sender, 1);
     }
 
     function createCustomMintableERC20(
-        uint256 totalSupply,
+        uint256 initSupply,
         string memory name,
         string memory symbol,
         uint8 decimals,
@@ -120,13 +136,14 @@ contract ERC20V3Factory {
         uint256 tradeFeeRatio,
         address teamAccount
     ) external payable returns (address newCustomMintableERC20) {
-        require(msg.value >= _CREATE_FEE_, "CREATE FEE NOT ENOUGH");
+        require(msg.value >= _CREATE_FEE_, "CREATE_FEE_NOT_ENOUGH");
         newCustomMintableERC20 = ICloneFactory(_CLONE_FACTORY_).clone(
             _CUSTOM_MINTABLE_ERC20_TEMPLATE_
         );
+
         ICustomERC20(newCustomMintableERC20).init(
             msg.sender,
-            totalSupply,
+            initSupply,
             name,
             symbol,
             decimals,
@@ -134,9 +151,61 @@ contract ERC20V3Factory {
             tradeFeeRatio,
             teamAccount
         );
+
         _USER_CUSTOM_MINTABLE_REGISTRY_[msg.sender].push(
             newCustomMintableERC20
         );
-        emit NewERC20(newCustomMintableERC20, msg.sender, 1);
+
+        emit NewERC20(newCustomMintableERC20, msg.sender, 2);
+    }
+
+    // ============ View ============
+    function getTokenByUser(
+        address user
+    )
+        external
+        view
+        returns (
+            address[] memory stds,
+            address[] memory customs,
+            address[] memory mintables
+        )
+    {
+        return (
+            _USER_STD_REGISTRY_[user],
+            _USER_CUSTOM_REGISTRY_[user],
+            _USER_CUSTOM_MINTABLE_REGISTRY_[user]
+        );
+    }
+
+    // ============ Ownable =============
+    function changeCreateFee(uint256 newFee) external onlyOwner {
+        _CREATE_FEE_ = newFee;
+        emit ChangeCreateFee(newFee);
+    }
+
+    function withdraw() external onlyOwner {
+        uint256 amount = address(this).balance;
+        msg.sender.transfer(amount);
+        emit Withdraw(msg.sender, amount);
+    }
+
+    function updateStdTemplate(address newStdTemplate) external onlyOwner {
+        _ERC20_TEMPLATE_ = newStdTemplate;
+        emit ChangeStdTemplate(newStdTemplate);
+    }
+
+    function updateCustomTemplate(
+        address newCustomTemplate
+    ) external onlyOwner {
+        _CUSTOM_ERC20_TEMPLATE_ = newCustomTemplate;
+        emit ChangeCustomTemplate(newCustomTemplate);
+    }
+
+    function updateCustomMintableTemplate(
+        address newCustomMintableTemplate
+    ) external onlyOwner {
+        _CUSTOM_MINTABLE_ERC20_TEMPLATE_ = newCustomMintableTemplate;
+        emit ChangeCustomMintableTemplate(newCustomMintableTemplate);
     }
 }
