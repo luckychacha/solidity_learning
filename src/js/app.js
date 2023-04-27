@@ -3,425 +3,610 @@ var chainId;
 var accountAddress;
 var myErc20Abi = [
   {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "cloneFactory",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "erc20Template",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "customErc20Template",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "customMintableErc20Template",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createFee",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "spender",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newFee",
+        "type": "uint256"
+      }
     ],
-    name: "Approval",
-    type: "event",
+    "name": "ChangeCreateFee",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "previousOwner",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "newCustomMintableTemplate",
+        "type": "address"
+      }
     ],
-    name: "OwnershipTransferred",
-    type: "event",
+    "name": "ChangeCustomMintableTemplate",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "newCustomTemplate",
+        "type": "address"
+      }
     ],
-    name: "Transfer",
-    type: "event",
+    "name": "ChangeCustomTemplate",
+    "type": "event"
   },
   {
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "spender",
-        type: "address",
-      },
+        "indexed": false,
+        "internalType": "address",
+        "name": "newStdTemplate",
+        "type": "address"
+      }
     ],
-    name: "allowance",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "name": "ChangeStdTemplate",
+    "type": "event"
   },
   {
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "address",
-        name: "spender",
-        type: "address",
+        "indexed": false,
+        "internalType": "address",
+        "name": "erc20",
+        "type": "address"
       },
       {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
       },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "erc20Type",
+        "type": "uint256"
+      }
     ],
-    name: "approve",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "NewERC20",
+    "type": "event"
   },
   {
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "address",
-        name: "account",
-        type: "address",
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
       },
-    ],
-    name: "balanceOf",
-    outputs: [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "OwnershipTransferPrepared",
+    "type": "event"
   },
   {
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
       },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    name: "burn",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "OwnershipTransferred",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "burnRatio",
-    outputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
       },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "Withdraw",
+    "type": "event"
   },
   {
-    inputs: [],
-    name: "decimals",
-    outputs: [
-      {
-        internalType: "uint8",
-        name: "",
-        type: "uint8",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "payable",
+    "type": "fallback",
+    "payable": true
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "_CLONE_FACTORY_",
+    "outputs": [
       {
-        internalType: "address",
-        name: "spender",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "subtractedValue",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "decreaseAllowance",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "feeAddress",
-    outputs: [
+    "inputs": [],
+    "name": "_CREATE_FEE_",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "feeRatio",
-    outputs: [
+    "inputs": [],
+    "name": "_CUSTOM_ERC20_TEMPLATE_",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "_CUSTOM_MINTABLE_ERC20_TEMPLATE_",
+    "outputs": [
       {
-        internalType: "address",
-        name: "spender",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "addedValue",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "increaseAllowance",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [
+    "inputs": [],
+    "name": "_ERC20_TEMPLATE_",
+    "outputs": [
       {
-        internalType: "address",
-        name: "_account",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    name: "mint",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "name",
-    outputs: [
+    "inputs": [],
+    "name": "_NEW_OWNER_",
+    "outputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "owner",
-    outputs: [
+    "inputs": [],
+    "name": "_OWNER_",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "_USER_CUSTOM_MINTABLE_REGISTRY_",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "addr",
-        type: "address",
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       },
       {
-        internalType: "uint256",
-        name: "_feeRatio",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_burnRatio",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    name: "setTradeRule",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "_USER_CUSTOM_REGISTRY_",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "symbol",
-    outputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "",
-        type: "string",
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "name": "_USER_STD_REGISTRY_",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
   },
   {
-    inputs: [],
-    name: "totalSupply",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
+    "inputs": [],
+    "name": "claimOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "_to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    name: "transfer",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "initOwner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "amount",
-        type: "uint256",
-      },
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
     ],
-    name: "transferFrom",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "transferOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "payable",
+    "type": "receive",
+    "payable": true
   },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      }
+    ],
+    "name": "createStdERC20",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "newERC20",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function",
+    "payable": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tradeBurnRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tradeFeeRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "teamAccount",
+        "type": "address"
+      }
+    ],
+    "name": "createCustomERC20",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "newCustomERC20",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function",
+    "payable": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "initSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "symbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint8",
+        "name": "decimals",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tradeBurnRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "tradeFeeRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "teamAccount",
+        "type": "address"
+      }
+    ],
+    "name": "createCustomMintableERC20",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "newCustomMintableERC20",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function",
+    "payable": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getTokenByUser",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "stds",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "customs",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "mintables",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "newFee",
+        "type": "uint256"
+      }
+    ],
+    "name": "changeCreateFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newStdTemplate",
+        "type": "address"
+      }
+    ],
+    "name": "updateStdTemplate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newCustomTemplate",
+        "type": "address"
+      }
+    ],
+    "name": "updateCustomTemplate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newCustomMintableTemplate",
+        "type": "address"
+      }
+    ],
+    "name": "updateCustomMintableTemplate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ];
 
 async function connect() {
@@ -447,29 +632,35 @@ async function connect() {
   var address = account[0];
   accountAddress = address;
 
-  var balance = await web3.eth.getBalance(address);
+  var eth_balance = await web3.eth.getBalance(address);
 
   document.getElementById("chain_id").innerText = chainId;
   document.getElementById("block_number").innerText = blockNumber;
   document.getElementById("block_timestamp").innerText = blockTimestamp;
   document.getElementById("account_address").innerText = address;
-  document.getElementById("current_balance").innerText = balance;
+  document.getElementById("current_eth_balance").innerText = eth_balance;
 }
 
 async function read() {
   var contractAddress = document.getElementById("contract_address").value;
   var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
 
-  var tokenSymbol = await instance.methods.symbol().call();
-  var tokenTotalSupply = await instance.methods.totalSupply().call();
-  var accountAddressBalance = await instance.methods
-    .balanceOf(accountAddress)
-    .call();
-  console.log("accountAddressBalance:" + accountAddressBalance);
+  var create_fee = await instance.methods._CLONE_FACTORY_().call();
+  var clone_factory_address = await instance.methods._ERC20_TEMPLATE_().call();
+  var erc20_template_address = await instance.methods._CUSTOM_ERC20_TEMPLATE_().call();
+  var custom_erc20_template_address = await instance.methods._CUSTOM_MINTABLE_ERC20_TEMPLATE_().call();
+  var custom_mintable_erc20_template_address = await instance.methods._CREATE_FEE_().call();
+  // var tokenTotalSupply = await instance.methods.totalSupply().call();
+  // var accountAddressBalance = await instance.methods
+  //   .balanceOf(accountAddress)
+  //   .call();
+  // console.log("accountAddressBalance:" + accountAddressBalance);
 
-  document.getElementById("token_symbol").innerText = tokenSymbol;
-  document.getElementById("total_supply").innerText = tokenTotalSupply;
-  document.getElementById("account_balance").innerText = accountAddressBalance;
+  document.getElementById("create_fee").innerText = create_fee;
+  document.getElementById("clone_factory_address").innerText = clone_factory_address;
+  document.getElementById("erc20_template_address").innerText = erc20_template_address;
+  document.getElementById("custom_erc20_template_address").innerText = custom_erc20_template_address;
+  document.getElementById("custom_mintable_erc20_template_address").innerText = custom_mintable_erc20_template_address;
 }
 
 async function transfer() {
