@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyErc20</title>
+    <title>ERC20 Factory</title>
 </head>
 
 <body>
@@ -36,19 +36,59 @@ Current Balance -->
         <!-- TokenSymbol
 TotalSupply
 AccountBalance -->
-        <div>CREATE_FEE:<span id="create_fee"></span></div>
-        <div>CLONE_FACTORY_ADDRESS:<span id="clone_factory_address"></span></div>
-        <div>ERC20_TEMPLATE_ADDRESS:<span id="erc20_template_address"></span></div>
-        <div>CUSTOM_ERC20_TEMPLATE_ADDRESS:<span id="custom_erc20_template_address"></span></div>
-        <div>CUSTOM_MINTABLE_ERC20_TEMPLATE_ADDRESS:<span id="custom_mintable_erc20_template_address"></span></div>
+        <div>CREATE_FEE: <span id="create_fee"></span>Ether</div>
+        <div>CLONE_FACTORY_ADDRESS: <span id="clone_factory_address"></span></div>
+        <div>ERC20_TEMPLATE_ADDRESS: <span id="erc20_template_address"></span></div>
+        <div>CUSTOM_ERC20_TEMPLATE_ADDRESS: <span id="custom_erc20_template_address"></span></div>
+        <div>CUSTOM_MINTABLE_ERC20_TEMPLATE_ADDRESS: <span id="custom_mintable_erc20_template_address"></span></div>
         <br />
+        <!-- <div>user_std_registry:<span id="user_std_registry"></span></div>
+        <div>user_custom_registry:<span id="user_custom_registry"></span></div>
+        <div>user_custom_mintable_registry:<span id="user_custom_mintable_registry"></span></div> -->
 
-        <!-- button Transfer -->
+
+        <!-- button Create Standard ERC20 Token-->
         <div>
-            To address:<input type="text" name="to_address" id="to_address" />
-            Transfer amount:<input type="text" name="transfer_amount" id="transfer_amount" />
-            <button onclick="transfer()">Transfer</button>
+            <div>
+                totalSupply:<input type="text" name="std_total_supply" id="std_total_supply" />
+            </div>
+            <div>
+                name:<input type="text" name="std_name" id="std_name" />
+            </div>
+            <div>
+                symbol:<input type="text" name="std_symbol" id="std_symbol" />
+            </div>
+            <div>
+                decimals:<input type="text" name="std_decimals" id="std_decimals" />
+            </div>
+            <button onclick="create_std_erc20()">Create STD ERC20 Token</button>
+        </div>
 
+        <!-- button Create Custom or Custom Mintable ERC20 Token-->
+        <div>
+            <div>
+                totalSupply:<input type="text" name="custom_total_supply" id="custom_total_supply" />
+            </div>
+            <div>
+                name:<input type="text" name="custom_name" id="custom_name" />
+            </div>
+            <div>
+                symbol:<input type="text" name="custom_symbol" id="custom_symbol" />
+            </div>
+            <div>
+                decimals:<input type="text" name="custom_decimals" id="custom_decimals" />
+            </div>
+            <div>
+                tradeBurnRatio:<input type="text" name="custom_trade_burn_ratio" id="custom_trade_burn_ratio" />
+            </div>
+            <div>
+                tradeFeeRatio:<input type="text" name="custom_trade_fee_ratio" id="custom_trade_fee_ratio" />
+            </div>
+            <div>
+                teamAccount:<input type="text" name="custom_team_account" id="custom_team_account" />
+            </div>
+            <button onclick="create_custom_erc20()">Create Custom ERC20 Token</button><br />
+            <button onclick="create_custom_mintable_erc20()">Create Custom Mintable ERC20 Token</button>
         </div>
         <!-- display section -->
         <!-- estimateGas -->
@@ -57,34 +97,7 @@ txHash -->
         <div>estimation:<span id="estimation"></span></div>
         <div>gasPrice:<span id="gas_price"></span></div>
         <div>txHash:<span id="tx_hash"></span></div>
-
-
         <br />
-        <div>
-            Mint amount:<input type="text" name="mint_amount" id="mint_amount" />
-            <button onclick="mint()">Mint</button>
-        </div>
-
-        <br />
-        <div>
-            Burn amount:<input type="text" name="burn_amount" id="burn_amount" />
-            <button onclick="burn()">Burn</button>
-        </div>
-        <br />
-        <div>Mint or Burn estimation:<span id="mint_burn_estimation"></span></div>
-        <div>Mint or Burn gasPrice:<span id="mint_burn_gas_price"></span></div>
-        <div>Mint or Burn txHash:<span id="mint_burn_tx_hash"></span></div>
-
-        <br />
-        <div>
-            Query address:<input type="text" name="query_address" id="query_address" />
-            <button onclick="query_by_address()">Query</button>
-            <div>Query address token balance:<span id="query_address_token_balance"></span></div>
-            <div>Query address ETH balance:<span id="query_address_eth_balance"></span></div>
-        </div>
-
-
-
     </div>
     <script src="./js/web3.min.js"></script>
     <script src="./js/app.js"></script>

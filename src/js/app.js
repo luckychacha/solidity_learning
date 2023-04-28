@@ -1,7 +1,7 @@
 var web3;
 var chainId;
 var accountAddress;
-var myErc20Abi = [
+var ERC20FactoryABI = [
   {
     "inputs": [
       {
@@ -643,103 +643,85 @@ async function connect() {
 
 async function read() {
   var contractAddress = document.getElementById("contract_address").value;
-  var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+  var instance = new web3.eth.Contract(ERC20FactoryABI, contractAddress);
 
-  var create_fee = await instance.methods._CLONE_FACTORY_().call();
-  var clone_factory_address = await instance.methods._ERC20_TEMPLATE_().call();
-  var erc20_template_address = await instance.methods._CUSTOM_ERC20_TEMPLATE_().call();
-  var custom_erc20_template_address = await instance.methods._CUSTOM_MINTABLE_ERC20_TEMPLATE_().call();
-  var custom_mintable_erc20_template_address = await instance.methods._CREATE_FEE_().call();
+  var clone_factory_address = await instance.methods._CLONE_FACTORY_().call();
+  var clone_factory_address_href = `https://sepolia.etherscan.io/address/${clone_factory_address}`;
+
+  var erc20_template_address = await instance.methods._ERC20_TEMPLATE_().call();
+  var erc20_template_address_href = `https://sepolia.etherscan.io/address/${erc20_template_address}`;
+
+  var custom_erc20_template_address = await instance.methods._CUSTOM_ERC20_TEMPLATE_().call();
+  var custom_erc20_template_address_href = `https://sepolia.etherscan.io/address/${custom_erc20_template_address}`;
+
+  var custom_mintable_erc20_template_address = await instance.methods._CUSTOM_MINTABLE_ERC20_TEMPLATE_().call();
+  var custom_mintable_erc20_template_address_href = `https://sepolia.etherscan.io/address/${custom_mintable_erc20_template_address}`;
+
+  var create_fee = await instance.methods._CREATE_FEE_().call();
   // var tokenTotalSupply = await instance.methods.totalSupply().call();
   // var accountAddressBalance = await instance.methods
   //   .balanceOf(accountAddress)
   //   .call();
   // console.log("accountAddressBalance:" + accountAddressBalance);
 
-  document.getElementById("create_fee").innerText = create_fee;
-  document.getElementById("clone_factory_address").innerText = clone_factory_address;
-  document.getElementById("erc20_template_address").innerText = erc20_template_address;
-  document.getElementById("custom_erc20_template_address").innerText = custom_erc20_template_address;
-  document.getElementById("custom_mintable_erc20_template_address").innerText = custom_mintable_erc20_template_address;
+  document.getElementById("create_fee").innerText = web3.utils.fromWei(create_fee, "ether");
+  document.getElementById("clone_factory_address").innerHTML = `<a href="${clone_factory_address_href}" target="_blank">${clone_factory_address}</a>`;
+  document.getElementById("erc20_template_address").innerHTML = `<a href="${erc20_template_address_href}" target="_blank">${erc20_template_address}</a>`;
+  document.getElementById("custom_erc20_template_address").innerHTML = `<a href="${custom_erc20_template_address_href}" target="_blank">${custom_erc20_template_address}</a>`;
+  document.getElementById("custom_mintable_erc20_template_address").innerHTML = `<a href="${custom_mintable_erc20_template_address_href}" target="_blank">${custom_mintable_erc20_template_address}</a>`;
+
+  var user_std_registry =  await instance.methods._USER_STD_REGISTRY_(accountAddress, 0).call();
+  var user_custom_registry =  await instance.methods._USER_CUSTOM_REGISTRY_(accountAddress, 0).call();
+  var user_custom_mintable_registry =  await instance.methods._USER_CUSTOM_MINTABLE_REGISTRY_(accountAddress, 0).call();
+
+  console.log(user_std_registry);
+  console.log(user_custom_registry);
+  console.log(user_custom_mintable_registry);
 }
 
-async function transfer() {
+async function create_std_erc20() {
   var contractAddress = document.getElementById("contract_address").value;
-  var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
+  var instance = new web3.eth.Contract(ERC20FactoryABI, contractAddress);
 
-  var toAddress = document.getElementById("to_address").value;
-  var amount = document.getElementById("transfer_amount").value;
+  var totalSupply = document.getElementById("std_total_supply").value;
+  var name = document.getElementById("std_name").value;
+  var symbol = document.getElementById("std_symbol").value;
+  var decimals = document.getElementById("std_decimals").value;
+  var stdERC20Data = instance.methods.createStdERC20(totalSupply, name, symbol, decimals).encodeABI();
+  await run(contractAddress, stdERC20Data);
 
-  var transferData = instance.methods.transfer(toAddress, amount).encodeABI();
 
-  var accountAddressBalance = await instance.methods
-    .balanceOf(accountAddress)
-    .call();
-  console.log("accountAddressBalance:" + accountAddressBalance);
-  // 预执行
-  var estimateGasRes = await web3.eth.estimateGas({
-    to: contractAddress,
-    data: transferData,
-    from: accountAddress,
-    value: "0x0",
-  });
-
-  var gasPrice = await web3.eth.getGasPrice();
-
-  let nonce = await web3.eth.getTransactionCount(accountAddress);
-
-  let rawTransaction = {
-    from: accountAddress,
-    to: contractAddress,
-    nonce: web3.utils.toHex(nonce),
-    gasPrice: gasPrice,
-    gas: estimateGasRes * 2,
-    value: "0x0",
-    data: transferData,
-    chainId: chainId,
-  };
-
-  // estimation
-  // gas_price
-  // tx_hash
-  web3.eth
-    .sendTransaction(rawTransaction)
-    .on("transactionHash", function (hash) {
-      console.log("txHash", hash);
-      document.getElementById("tx_hash").innerText = hash;
-    });
-  document.getElementById("estimation").innerText = estimateGasRes;
-  document.getElementById("gas_price").innerText = web3.utils.fromWei(
-    gasPrice,
-    "gwei"
-  );
+//   createStdERC20
+// createCustomERC20
+// createCustomMintableERC20
 }
-
-async function mint() {
+async function create_custom_erc20() {
   var contractAddress = document.getElementById("contract_address").value;
-  var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
-  var owner = await instance.methods.owner().call();
-  if (accountAddress != owner) {
-    alert("caller is not the owner.");
-    return;
-  }
+  var instance = new web3.eth.Contract(ERC20FactoryABI, contractAddress);
 
-  var mintAmount = document.getElementById("mint_amount").value;
-  var mintData = instance.methods.mint(accountAddress, mintAmount).encodeABI();
-  await run(contractAddress, mintData);
+  var totalSupply = document.getElementById("custom_total_supply").value;
+  var name = document.getElementById("custom_name").value;
+  var symbol = document.getElementById("custom_symbol").value;
+  var decimals = document.getElementById("custom_decimals").value;
+  var tradeBurnRatio = document.getElementById("custom_trade_burn_ratio").value;
+  var tradeFeeRatio = document.getElementById("custom_trade_fee_ratio").value;
+  var teamAccount = document.getElementById("custom_team_account").value;
+  var customERC20Data = instance.methods.createCustomERC20(totalSupply, name, symbol, decimals, tradeBurnRatio, tradeFeeRatio, teamAccount).encodeABI();
+  await run(contractAddress, customERC20Data);
 }
-async function burn() {
+async function create_custom_mintable_erc20() {
   var contractAddress = document.getElementById("contract_address").value;
-  var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
-  var owner = await instance.methods.owner().call();
-  if (accountAddress != owner) {
-    alert("caller is not the owner.");
-    return;
-  }
+  var instance = new web3.eth.Contract(ERC20FactoryABI, contractAddress);
 
-  var burnAmount = document.getElementById("burn_amount").value;
-  var burnData = instance.methods.burn(burnAmount).encodeABI();
-  await run(contractAddress, burnData);
+  var totalSupply = document.getElementById("custom_total_supply").value;
+  var name = document.getElementById("custom_name").value;
+  var symbol = document.getElementById("custom_symbol").value;
+  var decimals = document.getElementById("custom_decimals").value;
+  var tradeBurnRatio = document.getElementById("custom_trade_burn_ratio").value;
+  var tradeFeeRatio = document.getElementById("custom_trade_fee_ratio").value;
+  var teamAccount = document.getElementById("custom_team_account").value;
+  var customMintableERC20Data = instance.methods.createCustomERC20(totalSupply, name, symbol, decimals, tradeBurnRatio, tradeFeeRatio, teamAccount).encodeABI();
+  await run(contractAddress, customMintableERC20Data);
 }
 
 async function run(contractAddress, data) {
@@ -749,8 +731,8 @@ async function run(contractAddress, data) {
       to: contractAddress,
       data: data,
       from: accountAddress,
-      value: "0x0",
-      // value: web3.utils.toWei("0.02", "ether"), // 设置交易附带的以太币数量
+      // value: "0x0",
+      value: web3.utils.toWei("0.002", "ether"), // 设置交易附带的以太币数量
     });
 
     var gasPrice = await web3.eth.getGasPrice();
@@ -763,7 +745,7 @@ async function run(contractAddress, data) {
       nonce: web3.utils.toHex(nonce),
       gasPrice: gasPrice,
       gas: estimateGasRes * 2,
-      value: "0x0",
+      value: web3.utils.toWei("0.002", "ether"), // 设置交易附带的以太币数量
       data: data,
       chainId: chainId,
     };
@@ -772,10 +754,11 @@ async function run(contractAddress, data) {
       .sendTransaction(rawTransaction)
       .on("transactionHash", function (hash) {
         console.log("txHash", hash);
-        document.getElementById("mint_burn_tx_hash").innerText = hash;
+        // `<a href="${custom_mintable_erc20_template_address_href}" target="_blank">${custom_mintable_erc20_template_address}</a>
+        document.getElementById("tx_hash").innerHTML = `<a href="https://sepolia.etherscan.io/tx/${hash}" target="_blank">${hash}</a>`;
       });
-    document.getElementById("mint_burn_estimation").innerText = estimateGasRes;
-    document.getElementById("mint_burn_gas_price").innerText =
+    document.getElementById("estimation").innerText = estimateGasRes;
+    document.getElementById("gas_price").innerText =
       web3.utils.fromWei(gasPrice, "gwei");
   } catch (error) {
     // alert("execution reverted: Ownable: caller is not the owner");
@@ -783,18 +766,3 @@ async function run(contractAddress, data) {
   }
 }
 
-async function query_by_address() {
-  var contractAddress = document.getElementById("contract_address").value;
-  var instance = new web3.eth.Contract(myErc20Abi, contractAddress);
-
-  var queryAddress = document.getElementById("query_address").value;
-  var queryAddressMETBalance = await instance.methods
-    .balanceOf(queryAddress)
-    .call();
-  document.getElementById("query_address_token_balance").innerText =
-    queryAddressMETBalance;
-
-  var ethBalance = await web3.eth.getBalance(queryAddress);
-  console.log(`ethBalance: ${ethBalance} queryAddress: ${queryAddress}`);
-  document.getElementById("query_address_eth_balance").innerText = ethBalance;
-}
