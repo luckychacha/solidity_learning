@@ -670,13 +670,13 @@ async function read() {
   document.getElementById("custom_erc20_template_address").innerHTML = `<a href="${custom_erc20_template_address_href}" target="_blank">${custom_erc20_template_address}</a>`;
   document.getElementById("custom_mintable_erc20_template_address").innerHTML = `<a href="${custom_mintable_erc20_template_address_href}" target="_blank">${custom_mintable_erc20_template_address}</a>`;
 
-  var user_std_registry =  await instance.methods._USER_STD_REGISTRY_(accountAddress, 0).call();
-  var user_custom_registry =  await instance.methods._USER_CUSTOM_REGISTRY_(accountAddress, 0).call();
-  var user_custom_mintable_registry =  await instance.methods._USER_CUSTOM_MINTABLE_REGISTRY_(accountAddress, 0).call();
+  // var user_std_registry =  await instance.methods._USER_STD_REGISTRY_(accountAddress, 0).call();
+  // var user_custom_registry =  await instance.methods._USER_CUSTOM_REGISTRY_(accountAddress, 0).call();
+  // var user_custom_mintable_registry =  await instance.methods._USER_CUSTOM_MINTABLE_REGISTRY_(accountAddress, 0).call();
 
-  console.log(user_std_registry);
-  console.log(user_custom_registry);
-  console.log(user_custom_mintable_registry);
+  // console.log(user_std_registry);
+  // console.log(user_custom_registry);
+  // console.log(user_custom_mintable_registry);
 }
 
 async function create_std_erc20() {
