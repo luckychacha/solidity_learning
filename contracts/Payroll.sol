@@ -23,9 +23,13 @@ interface IERC20SafeTransfer {
         uint256 amount
     ) external returns (bool);
 }
-error MustBeContractOwner();
+error NotContractOwner();
 error SalaryPaymentUpkeepCannotBeFulfilled();
 error CannotSendMoney();
+error MustBeEqualLength();
+error EmployeeAddressesDuplicated();
+error NotEnoughMoneyProvided();
+error Overflowed();
 
 contract Payroll is
     UsdEthPairConverter,
@@ -36,15 +40,20 @@ contract Payroll is
     Ownable
 {
     using SafeMath for uint256;
+    using SafeMath for uint;
     using SafeERC20 for IERC20;
     mapping(bytes4 => bool) private _supportedInterfaces;
 
     // 365/12
     uint256 private constant PAYMENT_INTERVAL = 30.42 days;
 
+    uint256 private constant TERMINTATE_NOTICE_INTERVAL = 30 days;
+
     uint256 public lastPaymentTimestamp;
     uint public employersMappingLength;
     IERC20 private _token;
+    address[] public employeeAddressList;
+    uint256[] public usdAmountArray;
 
     struct Employee {
         address account;
@@ -65,17 +74,66 @@ contract Payroll is
 
     modifier MustBeOwnerOfContract() {
         if (msg.sender == owner()) {
-            revert MustBeContractOwner();
+            revert NotContractOwner();
         }
         _;
     }
 
-    constructor(address tokenAddress) {
-        _token = IERC20(tokenAddress);
+    modifier checkIfListsHaveSameLength(
+        address[] memory _employeeAddressList,
+        uint[] memory _usdAmountArray
+    ) {
+        if (_employeeAddressList.length != _usdAmountArray.length) {
+            revert MustBeEqualLength();
+        }
+        _;
+    }
+
+    constructor(
+        // address tokenAddress,
+        address[] memory _employeeAddressList,
+        uint256[] memory _usdAmountArray
+    )
+        payable
+        checkIfListsHaveSameLength(_employeeAddressList, _usdAmountArray)
+    {
+        // _token = IERC20(tokenAddress);
+        checkIfThereIsEnoughBalanceToMakeAtLeastOneYearPayment(_usdAmountArray);
 
         // Add supported interface IDs
         _registerInterface(type(IERC20SafeTransfer).interfaceId);
         statusSalaryPayment = salaryPaymentStatus.OPEN;
+
+        for (uint i = 0; i < _usdAmountArray.length; i++) {
+            employeeAddressesMustBeUnique(
+                _employeeAddressList[i],
+                _employeeAddressList
+            ); // To check the uniqueness of the addresses
+            employersMappingLength++;
+            employees[i] = Employee(
+                _employeeAddressList[i],
+                _usdAmountArray[i],
+                false,
+                0,
+                false
+            );
+            employeeAddressList.push(_employeeAddressList[i]);
+            usdAmountArray.push(_usdAmountArray[i]);
+        }
+        lastPaymentTimestamp = block.timestamp;
+    }
+
+    // terminate
+    function terminate(
+        address _terminatedAddress
+    ) public MustBeOwnerOfContract {
+        for (uint i = 0; i < employersMappingLength; i++) {
+            if (employees[i].account == _terminatedAddress) {
+                employees[i].isTerminated = true;
+                employees[i].terminationTime = block.timestamp;
+                employees[i].hasFinalPayment = false;
+            }
+        }
     }
 
     function safeTransfer(
@@ -163,5 +221,53 @@ contract Payroll is
         }
         statusSalaryPayment = salaryPaymentStatus.OPEN;
         lastPaymentTimestamp = block.timestamp;
+    }
+
+    function employeeAddressesMustBeUnique(
+        address _employeeAddress,
+        address[] memory _employeeAddressList
+    ) private view {
+        for (uint i = 0; i < employersMappingLength; i++) {
+            if (_employeeAddress == _employeeAddressList[i]) {
+                revert EmployeeAddressesDuplicated();
+            }
+        }
+    }
+
+    receive() external payable {}
+
+    function checkIfThereIsEnoughBalanceToMakeAtLeastOneYearPayment(
+        uint256[] memory _usdAmountArray
+    ) public payable {
+        uint256 oneYearEthPayment = calculatePayment(_usdAmountArray);
+        if (oneYearEthPayment > msg.value) {
+            revert NotEnoughMoneyProvided();
+        }
+    }
+
+    function calculatePayment(
+        uint256[] memory _usdAmountArray
+    ) public view returns (uint256) {
+        // make it only seeble by owner
+        uint256 totalUsdRequiredEachPayment;
+
+        for (uint256 i = 0; i < employersMappingLength; i++) {
+            totalUsdRequiredEachPayment += _usdAmountArray[i];
+        }
+        (bool usdSucceed, uint256 usdSum) = SafeMath.tryMul(
+            totalUsdRequiredEachPayment,
+            12
+        );
+        if (!usdSucceed) {
+            revert Overflowed();
+        }
+        (bool succeed, uint256 ethSum) = SafeMath.tryMul(
+            usdSum,
+            getAnUsdPriceInTermsOfEther()
+        );
+        if (!succeed) {
+            revert Overflowed();
+        }
+        return ethSum;
     }
 }

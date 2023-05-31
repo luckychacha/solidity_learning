@@ -21,11 +21,13 @@ contract UsdEthPairConverter {
             ,
 
         ) = priceFeed.latestRoundData();
+        // to wei
         return (price * 1e10);
     }
 
-    function getAnUsdPriceInTermsOfEther() internal view returns (uint) {
+    // unit: wei
+    function getAnUsdPriceInTermsOfEther() internal view returns (uint256) {
         int EthUsdPair = getLatestPrice();
-        return uint(1e36 / EthUsdPair);
+        return uint256(1e36 / EthUsdPair);
     }
 }
