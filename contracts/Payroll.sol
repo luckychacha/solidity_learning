@@ -253,6 +253,14 @@ contract Payroll is
 
         for (uint256 i = 0; i < employersMappingLength; i++) {
             totalUsdRequiredEachPayment += _usdAmountArray[i];
+            (bool addSucceed, uint addedValue) = SafeMath.tryAdd(
+                totalUsdRequiredEachPayment,
+                _usdAmountArray[i]
+            );
+            if (!addSucceed) {
+                revert Overflowed();
+            }
+            totalUsdRequiredEachPayment = addedValue;
         }
         (bool usdSucceed, uint256 usdSum) = SafeMath.tryMul(
             totalUsdRequiredEachPayment,
