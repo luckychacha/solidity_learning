@@ -40,7 +40,6 @@ contract Payroll is
     Ownable
 {
     using SafeMath for uint256;
-    using SafeMath for uint;
     using SafeERC20 for IERC20;
     mapping(bytes4 => bool) private _supportedInterfaces;
 
@@ -50,20 +49,21 @@ contract Payroll is
     uint256 private constant TERMINTATE_NOTICE_INTERVAL = 30 days;
 
     uint256 public lastPaymentTimestamp;
-    uint public employersMappingLength;
+    uint256 public employersMappingLength;
     IERC20 private _token;
     address[] public employeeAddressList;
     uint256[] public usdAmountArray;
+    uint terminatedEmployeeCount;
 
     struct Employee {
         address account;
         uint256 salary;
         bool isTerminated;
         uint256 terminationTime;
-        bool hasFinalPayment;
+        bool hasFinalRoundPayment;
     }
 
-    mapping(uint => Employee) public employees;
+    mapping(uint256 => Employee) public employees;
 
     enum salaryPaymentStatus {
         OPEN,
@@ -71,23 +71,6 @@ contract Payroll is
         CLOSED
     }
     salaryPaymentStatus public statusSalaryPayment;
-
-    modifier MustBeOwnerOfContract() {
-        if (msg.sender == owner()) {
-            revert NotContractOwner();
-        }
-        _;
-    }
-
-    modifier checkIfListsHaveSameLength(
-        address[] memory _employeeAddressList,
-        uint[] memory _usdAmountArray
-    ) {
-        if (_employeeAddressList.length != _usdAmountArray.length) {
-            revert MustBeEqualLength();
-        }
-        _;
-    }
 
     constructor(
         // address tokenAddress,
@@ -120,6 +103,7 @@ contract Payroll is
             employeeAddressList.push(_employeeAddressList[i]);
             usdAmountArray.push(_usdAmountArray[i]);
         }
+        terminatedEmployeeCount = 0;
         lastPaymentTimestamp = block.timestamp;
     }
 
@@ -130,8 +114,17 @@ contract Payroll is
         for (uint i = 0; i < employersMappingLength; i++) {
             if (employees[i].account == _terminatedAddress) {
                 employees[i].isTerminated = true;
-                employees[i].terminationTime = block.timestamp;
-                employees[i].hasFinalPayment = false;
+
+                uint256 terminationTime = block.timestamp +
+                    TERMINTATE_NOTICE_INTERVAL;
+                employees[i].terminationTime = terminationTime;
+                if (terminationTime > block.timestamp + PAYMENT_INTERVAL) {
+                    employees[i].hasFinalRoundPayment = false;
+                } else {
+                    employees[i].hasFinalRoundPayment = true;
+                }
+
+                terminatedEmployeeCount += 1;
             }
         }
     }
@@ -179,48 +172,93 @@ contract Payroll is
             bytes memory performData
         )
     {
-        uint256 currentTimestamp = block.timestamp;
-        uint256 nextPaymentTimestamp = lastPaymentTimestamp + PAYMENT_INTERVAL;
-        // uint256 requiredTokenAmount = getTotalTokenAmount();
+        uint256 eachEthRequiredForThePayment = calculateEachPayment(
+            usdAmountArray
+        );
+        bool hasEnoughBalance = (address(this).balance >=
+            eachEthRequiredForThePayment);
 
-        if (currentTimestamp <= nextPaymentTimestamp) {
-            return (false, "");
-        }
+        bool timestampDurationPass = (block.timestamp >=
+            (lastPaymentTimestamp + PAYMENT_INTERVAL));
+        bool hasEmployee = (employersMappingLength > 0);
+        bool statusIsOpen = (statusSalaryPayment != salaryPaymentStatus.OPEN);
 
-        if (employersMappingLength <= 0) {
-            return (false, "");
-        }
-        if (statusSalaryPayment != salaryPaymentStatus.OPEN) {
-            return (false, "");
-        }
-        // if (token.balanceOf(address(this)) < requiredTokenAmount) {
-        //     return (false, "");
-        // }
+        bool performForTerminated = terminatedEmployeeCount > 0;
+        bool performForPayroll = (
+            (timestampDurationPass && hasEmployee && statusIsOpen)
+        );
 
-        return (true, "");
+        upkeepNeeded = ((performForPayroll || performForTerminated) &&
+            hasEnoughBalance);
+
+        performData = abi.encode(performForTerminated);
+        return (upkeepNeeded, performData);
     }
 
     function performUpkeep(
-        bytes calldata /* performData */
+        bytes calldata performData
     ) external override nonReentrant {
         (bool upKeepNeeded, ) = checkUpkeep("");
         if (!upKeepNeeded) {
             revert SalaryPaymentUpkeepCannotBeFulfilled();
         }
+
         statusSalaryPayment = salaryPaymentStatus.SENDING;
+        bool performForTerminated = abi.decode(performData, (bool));
 
         for (uint i = 0; i < employersMappingLength; i++) {
-            uint salaryInEth = employees[i].salary *
-                getAnUsdPriceInTermsOfEther();
-            address addressToGetPaid = employees[i].account;
+            // performForTerminated
+            if (performForTerminated && terminatedEmployeeCount > 0) {
+                if (!employees[i].isTerminated) {
+                    continue;
+                }
+                uint256 unpaidSeconds = employees[i].terminationTime -
+                    lastPaymentTimestamp;
 
-            (bool success, ) = addressToGetPaid.call{value: salaryInEth}("");
-            if (!success) {
-                revert CannotSendMoney();
+                if (unpaidSeconds > 0) {
+                    uint salaryInEth = ((employees[i].salary *
+                        getAnUsdPriceInTermsOfEther()) / PAYMENT_INTERVAL) *
+                        unpaidSeconds;
+                    address addressToGetPaid = employees[i].account;
+                    (bool success, ) = addressToGetPaid.call{
+                        value: salaryInEth
+                    }("");
+                    if (!success) {
+                        revert CannotSendMoney();
+                    }
+                }
+                employees[i].terminationTime = 0;
+                employees[i].isTerminated = true;
+                terminatedEmployeeCount -= 1;
+                delete employees[i];
+                delete employeeAddressList[i];
+                delete usdAmountArray[i];
+            } else {
+                // performForPayroll
+                if (
+                    employees[i].isTerminated &&
+                    employees[i].hasFinalRoundPayment
+                ) {
+                    continue;
+                }
+
+                uint salaryInEth = employees[i].salary *
+                    getAnUsdPriceInTermsOfEther();
+                address addressToGetPaid = employees[i].account;
+
+                (bool success, ) = addressToGetPaid.call{value: salaryInEth}(
+                    ""
+                );
+                if (!success) {
+                    revert CannotSendMoney();
+                }
+                if (employees[i].isTerminated) {
+                    employees[i].hasFinalRoundPayment = true;
+                }
+                lastPaymentTimestamp = block.timestamp;
             }
         }
         statusSalaryPayment = salaryPaymentStatus.OPEN;
-        lastPaymentTimestamp = block.timestamp;
     }
 
     function employeeAddressesMustBeUnique(
@@ -239,20 +277,27 @@ contract Payroll is
     function checkIfThereIsEnoughBalanceToMakeAtLeastOneYearPayment(
         uint256[] memory _usdAmountArray
     ) public payable {
-        uint256 oneYearEthPayment = calculatePayment(_usdAmountArray);
+        uint256 eachSum = calculateEachPayment(_usdAmountArray);
+
+        (bool mulSucceed, uint256 oneYearEthPayment) = SafeMath.tryMul(
+            eachSum,
+            12
+        );
+        if (!mulSucceed) {
+            revert Overflowed();
+        }
         if (oneYearEthPayment > msg.value) {
             revert NotEnoughMoneyProvided();
         }
     }
 
-    function calculatePayment(
+    function calculateEachPayment(
         uint256[] memory _usdAmountArray
     ) public view returns (uint256) {
         // make it only seeble by owner
         uint256 totalUsdRequiredEachPayment;
 
         for (uint256 i = 0; i < employersMappingLength; i++) {
-            totalUsdRequiredEachPayment += _usdAmountArray[i];
             (bool addSucceed, uint addedValue) = SafeMath.tryAdd(
                 totalUsdRequiredEachPayment,
                 _usdAmountArray[i]
@@ -262,20 +307,32 @@ contract Payroll is
             }
             totalUsdRequiredEachPayment = addedValue;
         }
-        (bool usdSucceed, uint256 usdSum) = SafeMath.tryMul(
-            totalUsdRequiredEachPayment,
-            12
-        );
-        if (!usdSucceed) {
-            revert Overflowed();
-        }
+
         (bool succeed, uint256 ethSum) = SafeMath.tryMul(
-            usdSum,
+            totalUsdRequiredEachPayment,
             getAnUsdPriceInTermsOfEther()
         );
         if (!succeed) {
             revert Overflowed();
         }
         return ethSum;
+    }
+
+    //  ======= modifiers =======
+    modifier MustBeOwnerOfContract() {
+        if (msg.sender == owner()) {
+            revert NotContractOwner();
+        }
+        _;
+    }
+
+    modifier checkIfListsHaveSameLength(
+        address[] memory _employeeAddressList,
+        uint[] memory _usdAmountArray
+    ) {
+        if (_employeeAddressList.length != _usdAmountArray.length) {
+            revert MustBeEqualLength();
+        }
+        _;
     }
 }
