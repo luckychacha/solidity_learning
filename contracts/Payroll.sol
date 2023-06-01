@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
 interface IERC20SafeTransfer {
@@ -101,6 +102,7 @@ contract Payroll is
         uint256 oneYearPayment = calculateOneYearPayment(_salaryAmountArray);
         _mint(address(this), oneYearPayment);
         approve(address(this), oneYearPayment);
+        _token = IERC20(address(this));
         terminatedEmployeeCount = 0;
         lastPaymentTimestamp = block.timestamp;
     }
@@ -131,7 +133,7 @@ contract Payroll is
         address to,
         uint256 amount
     ) external override returns (bool) {
-        _token.safeTransfer(to, amount);
+        SafeERC20.safeTransfer(_token, to, amount);
         return true;
     }
 
@@ -140,7 +142,7 @@ contract Payroll is
         address to,
         uint256 amount
     ) external override returns (bool) {
-        _token.safeTransferFrom(from, to, amount);
+        SafeERC20.safeTransferFrom(_token, from, to, amount);
         return true;
     }
 
@@ -216,8 +218,7 @@ contract Payroll is
                         .mul(unpaidSeconds)
                         .div(PAYMENT_INTERVAL);
                     address addressToGetPaid = employees[i].account;
-                    bool success = transferFrom(
-                        address(this),
+                    bool success = _token.transfer(
                         addressToGetPaid,
                         unpaidSalary
                     );
@@ -242,8 +243,7 @@ contract Payroll is
                 }
 
                 address addressToGetPaid = employees[i].account;
-                bool success = transferFrom(
-                    address(this),
+                bool success = _token.transfer(
                     addressToGetPaid,
                     employees[i].salary
                 );
