@@ -4,12 +4,15 @@ pragma solidity ^0.8.7;
 
 // dependence
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
+
+// local
+import "./UsdEthPairConverter.sol";
 
 interface IERC20SafeTransfer {
     function safeTransfer(address to, uint256 amount) external returns (bool);
@@ -28,22 +31,20 @@ error EmployeeAddressesDuplicated();
 error NotEnoughMoneyProvided();
 error Overflowed();
 
-contract Payroll is
-    ERC20,
+contract EterPayroll is
+    UsdEthPairConverter,
     IERC20SafeTransfer,
     IERC165,
     AutomationCompatibleInterface,
     ReentrancyGuard,
     Ownable
 {
-    event Logger(address a, uint256 oneYearPayment);
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     mapping(bytes4 => bool) private _supportedInterfaces;
 
     // 365/12
-    uint256 private constant PAYMENT_INTERVAL = 40 seconds;
-    // uint256 private constant PAYMENT_INTERVAL = 30.42 days;
+    uint256 private constant PAYMENT_INTERVAL = 30.42 days;
 
     uint256 private constant TERMINTATE_NOTICE_INTERVAL = 30 days;
 
@@ -51,7 +52,7 @@ contract Payroll is
     uint256 public employersMappingLength;
     IERC20 private _token;
     address[] public employeeAddressList;
-    uint256[] public salaryAmountArray;
+    uint256[] public usdAmountArray;
     uint terminatedEmployeeCount;
 
     struct Employee {
@@ -72,35 +73,36 @@ contract Payroll is
     salaryPaymentStatus public statusSalaryPayment;
 
     constructor(
+        // address tokenAddress,
         address[] memory _employeeAddressList,
-        uint256[] memory _salaryAmountArray
+        uint256[] memory _usdAmountArray
     )
-        ERC20("PayRoll Token", "PRT")
-        checkIfListsHaveSameLength(_employeeAddressList, _salaryAmountArray)
+        payable
+        checkIfListsHaveSameLength(_employeeAddressList, _usdAmountArray)
     {
+        // _token = IERC20(tokenAddress);
+        checkIfThereIsEnoughBalanceToMakeAtLeastOneYearPayment(_usdAmountArray);
+
         // Add supported interface IDs
         _registerInterface(type(IERC20SafeTransfer).interfaceId);
         statusSalaryPayment = salaryPaymentStatus.OPEN;
 
-        for (uint i = 0; i < _salaryAmountArray.length; i++) {
+        for (uint i = 0; i < _usdAmountArray.length; i++) {
             employeeAddressesMustBeUnique(
                 _employeeAddressList[i],
                 _employeeAddressList
             ); // To check the uniqueness of the addresses
-            employersMappingLength += 1;
+            employersMappingLength++;
             employees[i] = Employee(
                 _employeeAddressList[i],
-                _salaryAmountArray[i],
+                _usdAmountArray[i],
                 false,
                 0,
                 false
             );
             employeeAddressList.push(_employeeAddressList[i]);
-            salaryAmountArray.push(_salaryAmountArray[i]);
+            usdAmountArray.push(_usdAmountArray[i]);
         }
-        uint256 oneYearPayment = calculateOneYearPayment(_salaryAmountArray);
-        _mint(address(this), oneYearPayment);
-        approve(address(this), oneYearPayment);
         terminatedEmployeeCount = 0;
         lastPaymentTimestamp = block.timestamp;
     }
@@ -170,13 +172,16 @@ contract Payroll is
             bytes memory performData
         )
     {
-        bool hasEnoughBalance = (balanceOf(address(this)) >=
-            calculateEachTimePayment(salaryAmountArray));
+        uint256 eachEthRequiredForThePayment = calculateEachPayment(
+            usdAmountArray
+        );
+        bool hasEnoughBalance = (address(this).balance >=
+            eachEthRequiredForThePayment);
 
         bool timestampDurationPass = (block.timestamp >=
             (lastPaymentTimestamp + PAYMENT_INTERVAL));
         bool hasEmployee = (employersMappingLength > 0);
-        bool statusIsOpen = (statusSalaryPayment == salaryPaymentStatus.OPEN);
+        bool statusIsOpen = (statusSalaryPayment != salaryPaymentStatus.OPEN);
 
         bool performForTerminated = terminatedEmployeeCount > 0;
         bool performForPayroll = (
@@ -211,17 +216,13 @@ contract Payroll is
                     lastPaymentTimestamp;
 
                 if (unpaidSeconds > 0) {
-                    uint unpaidSalary = employees[i]
-                        .salary
-                        .mul(unpaidSeconds)
-                        .div(PAYMENT_INTERVAL);
+                    uint salaryInEth = ((employees[i].salary *
+                        getAnUsdPriceInTermsOfEther()) / PAYMENT_INTERVAL) *
+                        unpaidSeconds;
                     address addressToGetPaid = employees[i].account;
-                    bool success = transferFrom(
-                        address(this),
-                        addressToGetPaid,
-                        unpaidSalary
-                    );
-
+                    (bool success, ) = addressToGetPaid.call{
+                        value: salaryInEth
+                    }("");
                     if (!success) {
                         revert CannotSendMoney();
                     }
@@ -231,7 +232,7 @@ contract Payroll is
                 terminatedEmployeeCount -= 1;
                 delete employees[i];
                 delete employeeAddressList[i];
-                delete salaryAmountArray[i];
+                delete usdAmountArray[i];
             } else {
                 // performForPayroll
                 if (
@@ -241,11 +242,12 @@ contract Payroll is
                     continue;
                 }
 
+                uint salaryInEth = employees[i].salary *
+                    getAnUsdPriceInTermsOfEther();
                 address addressToGetPaid = employees[i].account;
-                bool success = transferFrom(
-                    address(this),
-                    addressToGetPaid,
-                    employees[i].salary
+
+                (bool success, ) = addressToGetPaid.call{value: salaryInEth}(
+                    ""
                 );
                 if (!success) {
                     revert CannotSendMoney();
@@ -272,35 +274,48 @@ contract Payroll is
 
     receive() external payable {}
 
-    function calculateOneYearPayment(
-        uint256[] memory _salaryAmountArray
-    ) public view returns (uint256) {
-        uint256 a = calculateEachTimePayment(_salaryAmountArray);
-        (bool mulSucceed, uint256 oneYearPayment) = SafeMath.tryMul(a, 12);
+    function checkIfThereIsEnoughBalanceToMakeAtLeastOneYearPayment(
+        uint256[] memory _usdAmountArray
+    ) public payable {
+        uint256 eachSum = calculateEachPayment(_usdAmountArray);
 
+        (bool mulSucceed, uint256 oneYearEthPayment) = SafeMath.tryMul(
+            eachSum,
+            12
+        );
         if (!mulSucceed) {
             revert Overflowed();
         }
-        return oneYearPayment;
+        if (oneYearEthPayment > msg.value) {
+            revert NotEnoughMoneyProvided();
+        }
     }
 
-    function calculateEachTimePayment(
-        uint256[] memory _salaryAmountArray
+    function calculateEachPayment(
+        uint256[] memory _usdAmountArray
     ) public view returns (uint256) {
-        uint256 totalAmountRequiredEachPayment;
+        // make it only seeble by owner
+        uint256 totalUsdRequiredEachPayment;
 
         for (uint256 i = 0; i < employersMappingLength; i++) {
             (bool addSucceed, uint addedValue) = SafeMath.tryAdd(
-                totalAmountRequiredEachPayment,
-                _salaryAmountArray[i]
+                totalUsdRequiredEachPayment,
+                _usdAmountArray[i]
             );
             if (!addSucceed) {
                 revert Overflowed();
             }
-            totalAmountRequiredEachPayment = addedValue;
+            totalUsdRequiredEachPayment = addedValue;
         }
 
-        return totalAmountRequiredEachPayment;
+        (bool succeed, uint256 ethSum) = SafeMath.tryMul(
+            totalUsdRequiredEachPayment,
+            getAnUsdPriceInTermsOfEther()
+        );
+        if (!succeed) {
+            revert Overflowed();
+        }
+        return ethSum;
     }
 
     //  ======= modifiers =======
@@ -313,9 +328,9 @@ contract Payroll is
 
     modifier checkIfListsHaveSameLength(
         address[] memory _employeeAddressList,
-        uint[] memory _salaryAmountArray
+        uint[] memory _usdAmountArray
     ) {
-        if (_employeeAddressList.length != _salaryAmountArray.length) {
+        if (_employeeAddressList.length != _usdAmountArray.length) {
             revert MustBeEqualLength();
         }
         _;
